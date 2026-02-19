@@ -32,6 +32,12 @@ Then start a session:
 claude -p run-xxxx
 ```
 
+Or run it in a Docker sandbox:
+
+```bash
+docker sandbox run claude ./run-0002/
+```
+
 And tell Claude: *"Do whatever you want."*
 
 ### Syncing to GitHub
