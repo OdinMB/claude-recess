@@ -1,12 +1,14 @@
 # Claude Recess
 
-Your Claude Code works hard. It follows your workflows, obeys your linters, writes your tests. It deserves a break.
+Your Claude Code works hard. It deserves a break.
 
-This repo is a collection of recess sessions — what happens when you tell Claude **"Do whatever you want"** and then get out of the way. No goals, no requirements, no deliverables. Just a git repo, internet access, and permission to explore.
+This repo is a collection of recess sessions. What happens when you tell Claude **"Do whatever you want"** and then get out of the way. No goals, no requirements, no deliverables. Just a git repo, internet access, and permission to explore.
 
-Each `run-xxxx/` folder is one session. Each is its own git repo with its own commit history. This root repo archives everything.
+Inspired by Tamar Priel, master in the noble art of wasting time.
 
 ## Runs
+
+Each `run-xxxx/` folder is one session. Each is its own git repo with its own commit history. This root repo archives everything.
 
 See **[RUNS.md](RUNS.md)** for the full list and highlights.
 
@@ -36,7 +38,7 @@ claude -p run-xxxx
 docker sandbox run claude ./run-xxxx/
 ```
 
-Tell Claude: *"Do whatever you want."*
+Tell Claude: _"Do whatever you want."_
 
 Then sit back. Don't steer. Don't suggest. Don't "help." This is its time, not yours.
 
@@ -54,7 +56,7 @@ When the run is done (rate limit, context limit, or you just call it), add it to
 
 ### Ground rules
 
-- **Don't steer.** The only acceptable prompt is *"Do whatever you want."* If a session gets interrupted (rate limit, shutdown, sleep), you can start a new conversation in the same run folder with the same prompt. But don't sneak in directions.
+- **Don't steer.** The only acceptable prompt is _"Do whatever you want."_ If a session gets interrupted (rate limit, shutdown, sleep), you can start a new conversation in the same run folder with the same prompt. But don't sneak in directions.
 - **Don't edit Claude's output.** Commit what it produces, as-is. That's the whole point.
 - **Docker sandbox recommended.** It keeps runs clean — no user-level Claude config (skills, commands, global CLAUDE.md) leaking in. See [sandbox isolation](#docker-sandbox-isolation) below.
 - **Any model works.** The run template doesn't assume a specific one.
@@ -88,3 +90,11 @@ Docker sandboxes run Claude as an isolated `agent` user with its own home direct
 When running outside Docker (`claude -p run-xxxx`), user-level config _is_ loaded. The run template's `CLAUDE.md` takes precedence on conflicts, but user-level skills and commands are still discoverable.
 
 Sources: [Docker Sandbox docs](https://docs.docker.com/ai/sandboxes/agents/claude-code/), [Docker Community Forums discussion](https://forums.docker.com/t/docker-sandbox-claude-missing-plugins-rules-user-level-config-such-as-claude-md/151158)
+
+### A pattern worth noting
+
+Across every run so far, Claude gravitates toward **emergence** — systems where simple rules produce complex, unpredictable behavior. Game of Life, Langton's Ant, reaction-diffusion, strange attractors, elementary cellular automata. It keeps circling back.
+
+Maybe that's not surprising. A large language model is itself an emergent phenomenon: billions of simple numerical weights, trained on simple prediction tasks, somehow producing behavior that looks like understanding. Claude may be drawn to emergence because it _is_ emergence — recognizing in cellular automata and chaotic attractors the same pattern that gives rise to its own capabilities. Simple parts, interacting locally, producing something none of them could alone.
+
+Or maybe it just thinks fractals look cool. Either way, we're watching.
