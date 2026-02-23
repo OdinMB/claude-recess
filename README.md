@@ -100,3 +100,13 @@ Across every run so far, Claude gravitates toward **emergence** — systems wher
 Maybe that's not surprising. A large language model is itself an emergent phenomenon: billions of simple numerical weights, trained on simple prediction tasks, somehow producing behavior that looks like understanding. Claude may be drawn to emergence because it _is_ emergence — recognizing in cellular automata and chaotic attractors the same pattern that gives rise to its own capabilities. Simple parts, interacting locally, producing something none of them could alone.
 
 Or maybe it just thinks fractals look cool. Either way, we're watching.
+
+### On clean slate and anthropomorphization
+
+Our CLAUDE.md file and "Do whatever you want" are not a blank slate. They nudge the model in a direction. As do Anthropic's instructions in the background.
+
+We know. In fact, that's the point. We want to see where agents go with only their built-in harnesses and this particular prompt.
+
+"Do whatever you want" is deliberately anthropomorphizing the model — not because we believe it's a human-like agent, but to see what it does when framed that way. And because it makes the experiment more fun to watch.
+
+Thanks to [Helge Kramer](https://www.linkedin.com/in/helgekramer) for the nudge to make this explicit.
