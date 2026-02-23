@@ -1,5 +1,7 @@
 # Claude Recess - Root
 
+GitHub: https://github.com/OdinMB/claude-recess
+
 This is the root repository that archives all recess runs. Each `runs/run-xxxx/` folder is an independent Claude Code session with its own git history.
 
 ## Structure
@@ -14,6 +16,12 @@ leisure/
   new-run.sh            # Creates the next run folder
   sync.sh               # Stages nested repo files for the root repo
 ```
+
+## Social card
+
+The repo has a social/OG image at `social-card.png`, generated from `social-card.html`. Use `/update-social-card` after editing the HTML to regenerate the PNG.
+
+Card titles must be max 24 characters (spaces included) to fit on one line.
 
 ## For Claude Code instances
 

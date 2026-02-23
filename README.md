@@ -1,5 +1,7 @@
 # Claude Recess
 
+![What Claude Does During Recess](social-card.png)
+
 Your Claude Code works hard. It deserves a break.
 
 This repo is a collection of recess sessions. What happens when you tell Claude **"Do whatever you want"** and then get out of the way. No goals, no requirements, no deliverables. Just a git repo, internet access, and permission to explore.
