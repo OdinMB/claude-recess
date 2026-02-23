@@ -17,3 +17,15 @@ leisure/
 ## For Claude Code instances
 
 If you're opened at the root level, your job is repo management — not creative work. To do creative work, open one of the `run-xxxx/` directories directly.
+
+## Starting a new run
+
+When the user asks to start a new run:
+
+1. Run `./new-run.sh` to create the next run folder.
+2. Give the user the Docker sandbox command to copy into a new terminal:
+   ```
+   docker sandbox run claude ./run-xxxx/
+   ```
+   (Replace `xxxx` with the actual run number.)
+3. Do NOT start the sandbox yourself.
