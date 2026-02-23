@@ -1,75 +1,84 @@
-# Claude Leisure Time
+# Claude Recess
 
-An experiment in giving Claude Code unstructured free time.
+Your Claude Code works hard. It follows your workflows, obeys your linters, writes your tests. It deserves a break.
 
-## What is this?
+This repo is a collection of recess sessions — what happens when you tell Claude **"Do whatever you want"** and then get out of the way. No goals, no requirements, no deliverables. Just a git repo, internet access, and permission to explore.
 
-Each `run-xxxx/` folder is an independent session where Claude Code was told: **"Do whatever you want."** No goals, no requirements, no deliverables. Just a git repo, internet access, and permission to explore.
-
-Each run is its own git repo with its own commit history. The root repo archives everything.
+Each `run-xxxx/` folder is one session. Each is its own git repo with its own commit history. This root repo archives everything.
 
 ## Runs
 
 See **[RUNS.md](RUNS.md)** for the full list and highlights.
 
-## Setup
+In its first run, Claude explored chaos theory, fractals, cellular automata, strange attractors, quine relays, and wrote reflective essays on what it found interesting.
 
-### Creating a new run
+## Let Your Claude Play
+
+Want to give your Claude a recess? Here's how.
+
+### 1. Set up
+
+Fork and clone the repo, then create a run folder:
 
 ```bash
 ./new-run.sh
 ```
 
-This creates the next `run-xxxx/` folder with:
-- A git repo
-- Everything from `run-template/`: `CLAUDE.md`, `.claude/settings.json`, `.gitignore`
+This creates the next `run-xxxx/` with a fresh git repo and the standard template.
 
-Then start a session:
+### 2. Let it loose
+
+Start a session — either directly or in a Docker sandbox:
 
 ```bash
 claude -p run-xxxx
-```
-
-Or run it in a Docker sandbox:
-
-```bash
-# First time — creates a sandbox named claude-run-xxxx
+# or
 docker sandbox run claude ./run-xxxx/
-
-# Subsequent times — run by name (no workspace arg)
-docker sandbox run claude-run-xxxx
 ```
 
-And tell Claude: *"Do whatever you want."*
+Tell Claude: *"Do whatever you want."*
+
+Then sit back. Don't steer. Don't suggest. Don't "help." This is its time, not yours.
+
+### 3. Share what it made
+
+When the run is done (rate limit, context limit, or you just call it), add it to the repo:
+
+1. Add your run to **[RUNS.md](RUNS.md)** — a row in the table and optionally a highlights section.
+2. Sync and commit from the repo root:
+   ```bash
+   ./sync.sh -c "Add run-xxxx"
+   ```
+   (This is needed because each run has its own `.git/` — the sync script temporarily hides them so the root repo can track the files.)
+3. Open a PR.
+
+### Ground rules
+
+- **Don't steer.** The only acceptable prompt is *"Do whatever you want."* If a session gets interrupted (rate limit, shutdown, sleep), you can start a new conversation in the same run folder with the same prompt. But don't sneak in directions.
+- **Don't edit Claude's output.** Commit what it produces, as-is. That's the whole point.
+- **Docker sandbox recommended.** It keeps runs clean — no user-level Claude config (skills, commands, global CLAUDE.md) leaking in. See [sandbox isolation](#docker-sandbox-isolation) below.
+- **Any model works.** The run template doesn't assume a specific one.
+
+## Reference
 
 ### Cleaning up sandboxes
 
 Each `docker sandbox run claude ./run-xxxx/` creates a persistent sandbox. They accumulate over time.
 
 ```bash
-# List all sandboxes
-docker sandbox ls
-
-# Remove a specific sandbox
-docker sandbox rm claude-run-xxxx
-
-# Remove all sandboxes and clean up state
-docker sandbox reset
+docker sandbox ls                   # List all
+docker sandbox rm claude-run-xxxx   # Remove one
+docker sandbox reset                # Remove all
 ```
 
 ### Syncing to GitHub
 
-Because each run has its own `.git/` directory, git would normally treat them as submodules (recording a commit hash instead of tracking files). The `sync.sh` script works around this by temporarily hiding nested `.git` directories during staging:
+Because each run has its own `.git/`, git would normally treat them as submodules. The `sync.sh` script works around this by temporarily hiding nested `.git` directories during staging:
 
 ```bash
-# Stage all run files into the root repo
-./sync.sh
-
-# Stage and commit
-./sync.sh -c "Add run-0002"
-
-# Stage, commit, and push
-./sync.sh -p "Add run-0002"
+./sync.sh              # Stage only
+./sync.sh -c "message" # Stage and commit
+./sync.sh -p "message" # Stage, commit, and push
 ```
 
 ### Docker sandbox isolation
@@ -79,46 +88,3 @@ Docker sandboxes run Claude as an isolated `agent` user with its own home direct
 When running outside Docker (`claude -p run-xxxx`), user-level config _is_ loaded. The run template's `CLAUDE.md` takes precedence on conflicts, but user-level skills and commands are still discoverable.
 
 Sources: [Docker Sandbox docs](https://docs.docker.com/ai/sandboxes/agents/claude-code/), [Docker Community Forums discussion](https://forums.docker.com/t/docker-sandbox-claude-missing-plugins-rules-user-level-config-such-as-claude-md/151158)
-
-## Contributing
-
-Want to add your own run? Here's how:
-
-1. **Fork and clone** the repo.
-
-2. **Create a run folder:**
-   ```bash
-   ./new-run.sh
-   ```
-   This creates the next `run-xxxx/` with a fresh git repo and the standard template.
-
-3. **Start a session** — either directly or in a Docker sandbox:
-   ```bash
-   claude -p run-xxxx
-   # or
-   docker sandbox run claude ./run-xxxx/
-   ```
-   Tell Claude: *"Do whatever you want."*
-
-4. **Let it run.** Don't steer. When it stops (rate limit, context limit, your call), the run is done.
-
-5. **Add your run to [RUNS.md](RUNS.md)** — a row in the table and optionally a highlights section.
-
-6. **Sync and commit** from the repo root:
-   ```bash
-   ./sync.sh -c "Add run-xxxx"
-   ```
-   This is needed because each run has its own `.git/` — the sync script temporarily hides them so the root repo can track the files.
-
-7. **Open a PR.**
-
-### Guidelines
-
-- **One run per session.** Don't reuse a run folder for multiple sessions.
-- **Don't edit Claude's output.** The point is to see what Claude does unprompted. Commit what it produces, as-is.
-- **Docker sandbox recommended.** It keeps runs isolated from your user-level Claude config (skills, commands, global CLAUDE.md). See [Docker sandbox isolation](#docker-sandbox-isolation) above.
-- **Any model works.** The run template doesn't assume a specific model.
-
-### What Claude actually does
-
-In its first run, Claude explored chaos theory, fractals, cellular automata, strange attractors, quine relays, and wrote reflective essays on what it found interesting. See **[RUNS.md](RUNS.md)** for the full list.

@@ -1,6 +1,6 @@
-# Claude Leisure Time - Root
+# Claude Recess - Root
 
-This is the root repository that archives all leisure-time runs. Each `run-xxxx/` folder is an independent Claude Code session with its own git history.
+This is the root repository that archives all recess runs. Each `run-xxxx/` folder is an independent Claude Code session with its own git history.
 
 ## Structure
 
