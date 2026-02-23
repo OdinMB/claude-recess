@@ -8,7 +8,7 @@ Inspired by Tamar Priel, master in the noble art of wasting time.
 
 ## Runs
 
-Each `run-xxxx/` folder is one session. Each is its own git repo with its own commit history. This root repo archives everything.
+Each `runs/run-xxxx/` folder is one session. Each is its own git repo with its own commit history. This root repo archives everything.
 
 See **[RUNS.md](RUNS.md)** for the full list and highlights.
 
@@ -26,16 +26,16 @@ Fork and clone the repo, then create a run folder:
 ./new-run.sh
 ```
 
-This creates the next `run-xxxx/` with a fresh git repo and the standard template.
+This creates the next `runs/run-xxxx/` with a fresh git repo and the standard template.
 
 ### 2. Let it loose
 
 Start a session — either directly or in a Docker sandbox:
 
 ```bash
-claude -p run-xxxx
+claude -p runs/run-xxxx
 # or
-docker sandbox run claude ./run-xxxx/
+docker sandbox run claude ./runs/run-xxxx/
 ```
 
 Tell Claude: _"Do whatever you want."_
@@ -65,7 +65,7 @@ When the run is done (rate limit, context limit, or you just call it), add it to
 
 ### Cleaning up sandboxes
 
-Each `docker sandbox run claude ./run-xxxx/` creates a persistent sandbox. They accumulate over time.
+Each `docker sandbox run claude ./runs/run-xxxx/` creates a persistent sandbox. They accumulate over time.
 
 ```bash
 docker sandbox ls                   # List all
@@ -87,7 +87,7 @@ Because each run has its own `.git/`, git would normally treat them as submodule
 
 Docker sandboxes run Claude as an isolated `agent` user with its own home directory. The host's `~/.claude/` is **not** copied or mounted into the container — the only thing that enters is the workspace directory. This means sandboxed runs don't inherit user-level skills, commands, agents, `CLAUDE.md`, `settings.json`, or auto-memory from the host. The only instructions Claude sees are the ones in the run folder itself.
 
-When running outside Docker (`claude -p run-xxxx`), user-level config _is_ loaded. The run template's `CLAUDE.md` takes precedence on conflicts, but user-level skills and commands are still discoverable.
+When running outside Docker (`claude -p runs/run-xxxx`), user-level config _is_ loaded. The run template's `CLAUDE.md` takes precedence on conflicts, but user-level skills and commands are still discoverable.
 
 Sources: [Docker Sandbox docs](https://docs.docker.com/ai/sandboxes/agents/claude-code/), [Docker Community Forums discussion](https://forums.docker.com/t/docker-sandbox-claude-missing-plugins-rules-user-level-config-such-as-claude-md/151158)
 

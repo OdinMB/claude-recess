@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# sync.sh — Stage all run-xxx files into the root repo for committing/pushing.
+# sync.sh — Stage all run files into the root repo for committing/pushing.
 #
 # Git treats directories with .git/ as submodules (gitlinks), so it won't
 # track their files. This script temporarily hides the nested .git dirs,
@@ -25,7 +25,7 @@ done
 
 # Collect nested .git directories
 nested_gits=()
-for d in run-*/; do
+for d in runs/run-*/; do
     if [ -d "$d.git" ]; then
         nested_gits+=("$d")
     fi
