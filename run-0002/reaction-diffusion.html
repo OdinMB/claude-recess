@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reaction-Diffusion</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    color: #c8c8d0;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    display: flex;
+    height: 100vh;
+  }
+  canvas {
+    flex: 1;
+    display: block;
+    cursor: crosshair;
+  }
+  #panel {
+    width: 260px;
+    background: #12121a;
+    border-left: 1px solid #2a2a3a;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 12px;
+  }
+  h1 {
+    font-size: 15px;
+    color: #e0e0f0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #2a2a3a;
+    padding-bottom: 8px;
+  }
+  h2 {
+    font-size: 11px;
+    color: #8888aa;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  p.desc {
+    font-size: 10px;
+    color: #666680;
+    line-height: 1.5;
+  }
+  button {
+    background: #1e1e2e;
+    color: #c8c8d0;
+    border: 1px solid #3a3a4a;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    transition: background 0.15s;
+  }
+  button:hover { background: #2a2a3e; }
+  button.active { background: #3a2a5e; border-color: #6a5a8a; }
+  .btn-row { display: flex; gap: 5px; }
+  .btn-row button { flex: 1; }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .slider-row label {
+    width: 50px;
+    font-size: 11px;
+    color: #8888aa;
+  }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row .val {
+    width: 48px;
+    text-align: right;
+    font-size: 11px;
+    color: #aaaacc;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    background: #1e1e2e;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #6a5a8a;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .preset-name {
+    font-size: 10px;
+    color: #6a8aaa;
+    font-style: italic;
+    text-align: center;
+  }
+  #stats {
+    font-size: 10px;
+    color: #666680;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid #2a2a3a;
+  }
+  .color-row {
+    display: flex;
+    gap: 4px;
+  }
+  .color-btn {
+    flex: 1;
+    height: 24px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .color-btn.active { border-color: #fff; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="panel">
+  <h1>Reaction-Diffusion</h1>
+  <div class="preset-name" id="preset-label">coral</div>
+  <p class="desc">Gray-Scott model. Click/drag to add chemical V. The interplay of feed rate (F) and kill rate (k) creates radically different patterns.</p>
+
+  <h2>Presets</h2>
+  <div class="btn-row">
+    <button data-preset="coral">Coral</button>
+    <button data-preset="mitosis">Mitosis</button>
+  </div>
+  <div class="btn-row">
+    <button data-preset="worms">Worms</button>
+    <button data-preset="spots">Spots</button>
+  </div>
+  <div class="btn-row">
+    <button data-preset="maze">Maze</button>
+    <button data-preset="waves">Waves</button>
+  </div>
+  <div class="btn-row">
+    <button data-preset="solitons">Solitons</button>
+    <button data-preset="fingers">Fingers</button>
+  </div>
+
+  <h2>Parameters</h2>
+  <div class="slider-row">
+    <label>F</label>
+    <input type="range" id="sl-f" min="0" max="800" step="1" value="370">
+    <span class="val" id="val-f">0.0370</span>
+  </div>
+  <div class="slider-row">
+    <label>k</label>
+    <input type="range" id="sl-k" min="0" max="800" step="1" value="620">
+    <span class="val" id="val-k">0.0620</span>
+  </div>
+  <div class="slider-row">
+    <label>Du</label>
+    <input type="range" id="sl-du" min="50" max="400" step="5" value="210">
+    <span class="val" id="val-du">0.210</span>
+  </div>
+  <div class="slider-row">
+    <label>Dv</label>
+    <input type="range" id="sl-dv" min="10" max="200" step="5" value="105">
+    <span class="val" id="val-dv">0.105</span>
+  </div>
+  <div class="slider-row">
+    <label>Steps</label>
+    <input type="range" id="sl-steps" min="1" max="32" step="1" value="8">
+    <span class="val" id="val-steps">8</span>
+  </div>
+  <div class="slider-row">
+    <label>Brush</label>
+    <input type="range" id="sl-brush" min="2" max="40" step="1" value="10">
+    <span class="val" id="val-brush">10</span>
+  </div>
+
+  <h2>Color Map</h2>
+  <div class="color-row" id="color-row"></div>
+
+  <h2>Controls</h2>
+  <div class="btn-row">
+    <button id="btn-clear">Clear</button>
+    <button id="btn-seed">Seed</button>
+  </div>
+  <div class="btn-row">
+    <button id="btn-pause">Pause</button>
+    <button id="btn-fill-noise">Noise</button>
+  </div>
+
+  <div id="stats"></div>
+</div>
+
+<script>
+// ============================================================
+// Gray-Scott Reaction-Diffusion on GPU via WebGL
+// ============================================================
+
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', { alpha: false, antialias: false });
+
+if (!gl) {
+  document.body.innerHTML = '<p style="padding:2em;color:#f66">WebGL not supported</p>';
+  throw new Error('No WebGL');
+}
+
+// Enable float textures
+const ext = gl.getExtension('OES_texture_float');
+if (!ext) {
+  document.body.innerHTML = '<p style="padding:2em;color:#f66">OES_texture_float not supported</p>';
+  throw new Error('No float textures');
+}
+
+let W, H, simW, simH;
+let paused = false;
+let stepsPerFrame = 8;
+let brushRadius = 10;
+let mouseDown = false;
+let mouseX = 0, mouseY = 0;
+
+// Parameters (will be set by presets)
+let feedRate = 0.037;
+let killRate = 0.062;
+let Du = 0.21;
+let Dv = 0.105;
+
+// Color maps
+const COLOR_MAPS = {
+  'ocean':   [[0.0,0.02,0.1], [0.0,0.2,0.5], [0.1,0.6,0.8], [0.9,0.95,1.0]],
+  'fire':    [[0.05,0.0,0.0], [0.6,0.1,0.0], [1.0,0.6,0.0], [1.0,1.0,0.8]],
+  'moss':    [[0.02,0.05,0.02], [0.1,0.3,0.1], [0.3,0.7,0.2], [0.9,1.0,0.7]],
+  'purple':  [[0.05,0.0,0.1], [0.3,0.0,0.5], [0.6,0.2,0.9], [1.0,0.8,1.0]],
+  'mono':    [[0.0,0.0,0.0], [0.25,0.25,0.28], [0.55,0.55,0.6], [1.0,1.0,1.0]],
+  'thermal': [[0.0,0.0,0.2], [0.5,0.0,0.5], [1.0,0.3,0.0], [1.0,1.0,0.0]],
+};
+let currentColorMap = 'ocean';
+
+// --- Shaders ---
+const QUAD_VS = `
+  attribute vec2 a_pos;
+  varying vec2 v_uv;
+  void main() {
+    v_uv = a_pos * 0.5 + 0.5;
+    gl_Position = vec4(a_pos, 0, 1);
+  }
+`;
+
+const SIMULATION_FS = `
+  precision highp float;
+  uniform sampler2D u_state;
+  uniform vec2 u_resolution;
+  uniform float u_feed;
+  uniform float u_kill;
+  uniform float u_du;
+  uniform float u_dv;
+  uniform float u_dt;
+  uniform vec2 u_mouse;
+  uniform float u_mouseDown;
+  uniform float u_brushRadius;
+  varying vec2 v_uv;
+
+  void main() {
+    vec2 px = 1.0 / u_resolution;
+    vec4 s = texture2D(u_state, v_uv);
+    float u = s.r;
+    float v = s.g;
+
+    // 5-point Laplacian
+    float lu = -4.0 * u;
+    float lv = -4.0 * v;
+
+    vec4 n;
+    n = texture2D(u_state, v_uv + vec2(px.x, 0));  lu += n.r; lv += n.g;
+    n = texture2D(u_state, v_uv - vec2(px.x, 0));  lu += n.r; lv += n.g;
+    n = texture2D(u_state, v_uv + vec2(0, px.y));   lu += n.r; lv += n.g;
+    n = texture2D(u_state, v_uv - vec2(0, px.y));   lu += n.r; lv += n.g;
+
+    float uvv = u * v * v;
+    float du = u_du * lu - uvv + u_feed * (1.0 - u);
+    float dv = u_dv * lv + uvv - (u_feed + u_kill) * v;
+
+    u += du * u_dt;
+    v += dv * u_dt;
+
+    // Mouse interaction: add chemical v
+    if (u_mouseDown > 0.5) {
+      float d = length((v_uv - u_mouse) * u_resolution);
+      if (d < u_brushRadius) {
+        float strength = smoothstep(u_brushRadius, 0.0, d);
+        v = mix(v, 1.0, strength * 0.5);
+      }
+    }
+
+    gl_FragColor = vec4(clamp(u, 0.0, 1.0), clamp(v, 0.0, 1.0), 0, 1);
+  }
+`;
+
+const RENDER_FS = `
+  precision highp float;
+  uniform sampler2D u_state;
+  uniform vec3 u_c0, u_c1, u_c2, u_c3;
+  varying vec2 v_uv;
+
+  vec3 colormap(float t) {
+    t = clamp(t, 0.0, 1.0);
+    if (t < 0.333) {
+      return mix(u_c0, u_c1, t * 3.0);
+    } else if (t < 0.667) {
+      return mix(u_c1, u_c2, (t - 0.333) * 3.0);
+    } else {
+      return mix(u_c2, u_c3, (t - 0.667) * 3.0);
+    }
+  }
+
+  void main() {
+    vec4 s = texture2D(u_state, v_uv);
+    float val = s.g;  // chemical v concentration
+    vec3 col = colormap(val * 2.5);
+    gl_FragColor = vec4(col, 1);
+  }
+`;
+
+const SEED_FS = `
+  precision highp float;
+  uniform vec2 u_resolution;
+  uniform float u_mode; // 0 = clear, 1 = seed spots, 2 = noise
+  uniform float u_time;
+  varying vec2 v_uv;
+
+  // Simple hash
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+
+  void main() {
+    float u = 1.0;
+    float v = 0.0;
+
+    if (u_mode > 1.5) {
+      // Noise fill
+      float n = hash(v_uv * u_resolution + u_time);
+      if (n > 0.85) {
+        v = n;
+        u = 1.0 - v * 0.5;
+      }
+    } else if (u_mode > 0.5) {
+      // Seed: several random spots
+      vec2 center = u_resolution * 0.5;
+      for (float i = 0.0; i < 12.0; i++) {
+        float angle = i * 2.399 + u_time;
+        float radius = 50.0 + hash(vec2(i, u_time)) * min(u_resolution.x, u_resolution.y) * 0.35;
+        vec2 spot = center + vec2(cos(angle), sin(angle)) * radius;
+        float d = length(v_uv * u_resolution - spot);
+        float spotR = 4.0 + hash(vec2(i + 100.0, u_time)) * 8.0;
+        if (d < spotR) {
+          v = 1.0;
+          u = 0.5;
+        }
+      }
+    }
+
+    gl_FragColor = vec4(u, v, 0, 1);
+  }
+`;
+
+// --- WebGL Helpers ---
+function compileShader(src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    console.error(gl.getShaderInfoLog(s));
+    return null;
+  }
+  return s;
+}
+
+function createProgram(vsSrc, fsSrc) {
+  const vs = compileShader(vsSrc, gl.VERTEX_SHADER);
+  const fs = compileShader(fsSrc, gl.FRAGMENT_SHADER);
+  const prog = gl.createProgram();
+  gl.attachShader(prog, vs);
+  gl.attachShader(prog, fs);
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(prog));
+    return null;
+  }
+  return prog;
+}
+
+function getUniforms(prog, names) {
+  const u = {};
+  for (const n of names) u[n] = gl.getUniformLocation(prog, n);
+  return u;
+}
+
+function createTexture(w, h, data) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.FLOAT, data);
+  return tex;
+}
+
+function createFBO(tex) {
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  return fbo;
+}
+
+// --- Setup ---
+let simProg, simUniforms;
+let renderProg, renderUniforms;
+let seedProg, seedUniforms;
+let texA, texB, fboA, fboB;
+let quadBuf;
+
+function init() {
+  // Quad buffer
+  quadBuf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+
+  // Programs
+  simProg = createProgram(QUAD_VS, SIMULATION_FS);
+  simUniforms = getUniforms(simProg, [
+    'u_state','u_resolution','u_feed','u_kill','u_du','u_dv','u_dt',
+    'u_mouse','u_mouseDown','u_brushRadius'
+  ]);
+
+  renderProg = createProgram(QUAD_VS, RENDER_FS);
+  renderUniforms = getUniforms(renderProg, ['u_state','u_c0','u_c1','u_c2','u_c3']);
+
+  seedProg = createProgram(QUAD_VS, SEED_FS);
+  seedUniforms = getUniforms(seedProg, ['u_resolution','u_mode','u_time']);
+
+  initTextures();
+}
+
+function initTextures() {
+  if (texA) gl.deleteTexture(texA);
+  if (texB) gl.deleteTexture(texB);
+  if (fboA) gl.deleteFramebuffer(fboA);
+  if (fboB) gl.deleteFramebuffer(fboB);
+
+  texA = createTexture(simW, simH, null);
+  texB = createTexture(simW, simH, null);
+  fboA = createFBO(texA);
+  fboB = createFBO(texB);
+}
+
+function drawQuad(prog) {
+  gl.useProgram(prog);
+  const loc = gl.getAttribLocation(prog, 'a_pos');
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+function seedSimulation(mode) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboA);
+  gl.viewport(0, 0, simW, simH);
+  gl.useProgram(seedProg);
+  gl.uniform2f(seedUniforms.u_resolution, simW, simH);
+  gl.uniform1f(seedUniforms.u_mode, mode);
+  gl.uniform1f(seedUniforms.u_time, performance.now() * 0.001);
+  drawQuad(seedProg);
+
+  // Copy to B
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
+  gl.viewport(0, 0, simW, simH);
+  gl.useProgram(renderProg);
+  const cm = COLOR_MAPS[currentColorMap];
+  gl.uniform3fv(renderUniforms.u_c0, cm[0]);
+  gl.uniform3fv(renderUniforms.u_c1, cm[1]);
+  gl.uniform3fv(renderUniforms.u_c2, cm[2]);
+  gl.uniform3fv(renderUniforms.u_c3, cm[3]);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texA);
+  gl.uniform1i(renderUniforms.u_state, 0);
+  // Actually just copy the state
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
+  gl.viewport(0, 0, simW, simH);
+  // Use sim prog to copy - simpler to just write same data
+  // Let's just init texB with seed too
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fboB);
+  gl.useProgram(seedProg);
+  gl.uniform2f(seedUniforms.u_resolution, simW, simH);
+  gl.uniform1f(seedUniforms.u_mode, mode);
+  gl.uniform1f(seedUniforms.u_time, performance.now() * 0.001);
+  drawQuad(seedProg);
+}
+
+// --- Resize ---
+function resize() {
+  const panel = document.getElementById('panel');
+  W = window.innerWidth - panel.offsetWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+
+  // Simulation at half resolution for performance
+  const scale = 1;
+  simW = Math.floor(W * scale);
+  simH = Math.floor(H * scale);
+}
+
+window.addEventListener('resize', () => {
+  resize();
+  initTextures();
+  seedSimulation(1);
+});
+
+resize();
+init();
+seedSimulation(1);
+
+// --- Simulation Step ---
+let current = 0; // 0 = A is current, 1 = B is current
+
+function simulationStep() {
+  const srcTex = current === 0 ? texA : texB;
+  const dstFbo = current === 0 ? fboB : fboA;
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, dstFbo);
+  gl.viewport(0, 0, simW, simH);
+  gl.useProgram(simProg);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, srcTex);
+  gl.uniform1i(simUniforms.u_state, 0);
+  gl.uniform2f(simUniforms.u_resolution, simW, simH);
+  gl.uniform1f(simUniforms.u_feed, feedRate);
+  gl.uniform1f(simUniforms.u_kill, killRate);
+  gl.uniform1f(simUniforms.u_du, Du);
+  gl.uniform1f(simUniforms.u_dv, Dv);
+  gl.uniform1f(simUniforms.u_dt, 1.0);
+
+  // Mouse
+  const mx = mouseX / W;
+  const my = 1.0 - mouseY / H;
+  gl.uniform2f(simUniforms.u_mouse, mx, my);
+  gl.uniform1f(simUniforms.u_mouseDown, mouseDown ? 1.0 : 0.0);
+  gl.uniform1f(simUniforms.u_brushRadius, brushRadius);
+
+  drawQuad(simProg);
+  current = 1 - current;
+}
+
+function render() {
+  const srcTex = current === 0 ? texA : texB;
+
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.viewport(0, 0, W, H);
+  gl.useProgram(renderProg);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, srcTex);
+  gl.uniform1i(renderUniforms.u_state, 0);
+
+  const cm = COLOR_MAPS[currentColorMap];
+  gl.uniform3fv(renderUniforms.u_c0, cm[0]);
+  gl.uniform3fv(renderUniforms.u_c1, cm[1]);
+  gl.uniform3fv(renderUniforms.u_c2, cm[2]);
+  gl.uniform3fv(renderUniforms.u_c3, cm[3]);
+
+  drawQuad(renderProg);
+}
+
+// --- Presets ---
+const PRESETS = {
+  coral:    { f: 0.0370, k: 0.0620, du: 0.21, dv: 0.105 },
+  mitosis:  { f: 0.0280, k: 0.0620, du: 0.21, dv: 0.105 },
+  worms:    { f: 0.0500, k: 0.0650, du: 0.21, dv: 0.105 },
+  spots:    { f: 0.0350, k: 0.0650, du: 0.21, dv: 0.105 },
+  maze:     { f: 0.0290, k: 0.0570, du: 0.21, dv: 0.105 },
+  waves:    { f: 0.0140, k: 0.0450, du: 0.21, dv: 0.105 },
+  solitons: { f: 0.0300, k: 0.0620, du: 0.21, dv: 0.105 },
+  fingers:  { f: 0.0380, k: 0.0610, du: 0.21, dv: 0.105 },
+};
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+  feedRate = p.f;
+  killRate = p.k;
+  Du = p.du;
+  Dv = p.dv;
+
+  document.getElementById('sl-f').value = Math.round(p.f * 10000);
+  document.getElementById('val-f').textContent = p.f.toFixed(4);
+  document.getElementById('sl-k').value = Math.round(p.k * 10000);
+  document.getElementById('val-k').textContent = p.k.toFixed(4);
+  document.getElementById('sl-du').value = Math.round(p.du * 1000);
+  document.getElementById('val-du').textContent = p.du.toFixed(3);
+  document.getElementById('sl-dv').value = Math.round(p.dv * 1000);
+  document.getElementById('val-dv').textContent = p.dv.toFixed(3);
+
+  document.getElementById('preset-label').textContent = name;
+  seedSimulation(1);
+  current = 0;
+}
+
+// --- Mouse ---
+canvas.addEventListener('mousedown', e => {
+  mouseDown = true;
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+canvas.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+canvas.addEventListener('mouseup', () => mouseDown = false);
+canvas.addEventListener('mouseleave', () => mouseDown = false);
+
+// --- UI ---
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+});
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+  seedSimulation(0);
+  current = 0;
+});
+document.getElementById('btn-seed').addEventListener('click', () => {
+  seedSimulation(1);
+  current = 0;
+});
+document.getElementById('btn-fill-noise').addEventListener('click', () => {
+  seedSimulation(2);
+  current = 0;
+});
+document.getElementById('btn-pause').addEventListener('click', function() {
+  paused = !paused;
+  this.textContent = paused ? 'Resume' : 'Pause';
+  this.classList.toggle('active', paused);
+});
+
+// Sliders
+function wireSlider(id, valId, setter, formatter) {
+  const sl = document.getElementById(id);
+  const val = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    const v = Number(sl.value);
+    setter(v);
+    val.textContent = formatter(v);
+    document.getElementById('preset-label').textContent = 'custom';
+  });
+}
+
+wireSlider('sl-f', 'val-f', v => { feedRate = v / 10000; }, v => (v / 10000).toFixed(4));
+wireSlider('sl-k', 'val-k', v => { killRate = v / 10000; }, v => (v / 10000).toFixed(4));
+wireSlider('sl-du', 'val-du', v => { Du = v / 1000; }, v => (v / 1000).toFixed(3));
+wireSlider('sl-dv', 'val-dv', v => { Dv = v / 1000; }, v => (v / 1000).toFixed(3));
+wireSlider('sl-steps', 'val-steps', v => { stepsPerFrame = v; }, v => v);
+wireSlider('sl-brush', 'val-brush', v => { brushRadius = v; }, v => v);
+
+// Color map buttons
+const colorRow = document.getElementById('color-row');
+for (const name of Object.keys(COLOR_MAPS)) {
+  const btn = document.createElement('div');
+  btn.className = 'color-btn' + (name === currentColorMap ? ' active' : '');
+  const cm = COLOR_MAPS[name];
+  btn.style.background = `linear-gradient(135deg,
+    rgb(${cm[0].map(v => Math.round(v*255)).join(',')}),
+    rgb(${cm[1].map(v => Math.round(v*255)).join(',')}),
+    rgb(${cm[2].map(v => Math.round(v*255)).join(',')}),
+    rgb(${cm[3].map(v => Math.round(v*255)).join(',')})
+  )`;
+  btn.title = name;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentColorMap = name;
+  });
+  colorRow.appendChild(btn);
+}
+
+// --- Main Loop ---
+let frameCount = 0;
+let fpsTime = 0;
+let fps = 0;
+let totalSteps = 0;
+
+function loop(time) {
+  requestAnimationFrame(loop);
+
+  frameCount++;
+  if (time - fpsTime > 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    fpsTime = time;
+    document.getElementById('stats').textContent =
+      `${fps} fps · ${simW}x${simH} · ${totalSteps} steps`;
+  }
+
+  if (!paused) {
+    for (let i = 0; i < stepsPerFrame; i++) {
+      simulationStep();
+      totalSteps++;
+    }
+  }
+  render();
+}
+
+// Apply initial preset
+applyPreset('coral');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

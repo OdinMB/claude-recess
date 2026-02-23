@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Strange Attractors</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #050508;
+    color: #c8c8d0;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    height: 100vh;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+  #hud {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+  }
+  #hud button {
+    background: rgba(15, 15, 25, 0.85);
+    color: #aaa;
+    border: 1px solid #333;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    backdrop-filter: blur(8px);
+  }
+  #hud button:hover { color: #fff; border-color: #666; }
+  #hud button.active { color: #fff; border-color: #88aaff; background: rgba(40, 50, 80, 0.85); }
+  #info {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.6;
+  }
+  #info .name {
+    font-size: 18px;
+    color: #8899bb;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  #info .eq {
+    color: #444;
+    font-size: 10px;
+  }
+  #controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10;
+    font-size: 10px;
+    color: #444;
+    text-align: right;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="info">
+  <div class="name" id="attractor-name">Lorenz</div>
+  <div class="eq" id="attractor-eq"></div>
+  <div id="point-count" style="margin-top:8px"></div>
+</div>
+
+<div id="controls">
+  drag to rotate<br>
+  scroll to zoom<br>
+  space to pause<br>
+  r to reset
+</div>
+
+<div id="hud"></div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// --- Attractor definitions ---
+const ATTRACTORS = {
+  lorenz: {
+    name: 'Lorenz',
+    eq: 'dx = s(y-x), dy = x(r-z)-y, dz = xy-bz',
+    params: { sigma: 10, rho: 28, beta: 8/3 },
+    dt: 0.005,
+    init: () => [0.1, 0, 0],
+    step: (x, y, z, p, dt) => [
+      x + (p.sigma * (y - x)) * dt,
+      y + (x * (p.rho - z) - y) * dt,
+      z + (x * y - p.beta * z) * dt
+    ],
+    scale: 8,
+    center: [0, 0, 25],
+    color: [0.4, 0.6, 1.0],
+  },
+  rossler: {
+    name: 'Rossler',
+    eq: 'dx = -y-z, dy = x+ay, dz = b+z(x-c)',
+    params: { a: 0.2, b: 0.2, c: 5.7 },
+    dt: 0.008,
+    init: () => [1, 1, 1],
+    step: (x, y, z, p, dt) => [
+      x + (-y - z) * dt,
+      y + (x + p.a * y) * dt,
+      z + (p.b + z * (x - p.c)) * dt
+    ],
+    scale: 15,
+    center: [0, 0, 5],
+    color: [1.0, 0.5, 0.3],
+  },
+  aizawa: {
+    name: 'Aizawa',
+    eq: 'dx = (z-b)x-dy, dy = dx+(z-b)y, dz = c+az-z^3/3-(x^2+y^2)(1+ez)+fzx^3',
+    params: { a: 0.95, b: 0.7, c: 0.6, d: 3.5, e: 0.25, f: 0.1 },
+    dt: 0.003,
+    init: () => [0.1, 0, 0],
+    step: (x, y, z, p, dt) => [
+      x + ((z - p.b) * x - p.d * y) * dt,
+      y + (p.d * x + (z - p.b) * y) * dt,
+      z + (p.c + p.a * z - z*z*z/3 - (x*x + y*y) * (1 + p.e * z) + p.f * z * x*x*x) * dt
+    ],
+    scale: 250,
+    center: [0, 0, 0],
+    color: [0.3, 1.0, 0.6],
+  },
+  halvorsen: {
+    name: 'Halvorsen',
+    eq: 'dx = -ax-4y-4z-y^2, dy = -ay-4z-4x-z^2, dz = -az-4x-4y-x^2',
+    params: { a: 1.4 },
+    dt: 0.003,
+    init: () => [-1.48, -1.51, 2.04],
+    step: (x, y, z, p, dt) => [
+      x + (-p.a * x - 4 * y - 4 * z - y * y) * dt,
+      y + (-p.a * y - 4 * z - 4 * x - z * z) * dt,
+      z + (-p.a * z - 4 * x - 4 * y - x * x) * dt
+    ],
+    scale: 18,
+    center: [0, 0, 0],
+    color: [0.9, 0.3, 0.9],
+  },
+  thomas: {
+    name: 'Thomas',
+    eq: 'dx = sin(y)-bx, dy = sin(z)-by, dz = sin(x)-bz',
+    params: { b: 0.208186 },
+    dt: 0.03,
+    init: () => [1.1, 1.1, -0.01],
+    step: (x, y, z, p, dt) => [
+      x + (Math.sin(y) - p.b * x) * dt,
+      y + (Math.sin(z) - p.b * y) * dt,
+      z + (Math.sin(x) - p.b * z) * dt
+    ],
+    scale: 80,
+    center: [0, 0, 0],
+    color: [1.0, 0.9, 0.3],
+  },
+  dadras: {
+    name: 'Dadras',
+    eq: 'dx = y-px+qyz, dy = ry-xz+z, dz = sxy-ez',
+    params: { p: 3, q: 2.7, r: 1.7, s: 2, e: 9 },
+    dt: 0.003,
+    init: () => [1, 1, 1],
+    step: (x, y, z, p, dt) => [
+      x + (y - p.p * x + p.q * y * z) * dt,
+      y + (p.r * y - x * z + z) * dt,
+      z + (p.s * x * y - p.e * z) * dt
+    ],
+    scale: 12,
+    center: [0, 0, 0],
+    color: [0.3, 0.8, 0.9],
+  },
+  chen: {
+    name: 'Chen',
+    eq: 'dx = a(y-x), dy = (c-a)x-xz+cy, dz = xy-bz',
+    params: { a: 35, b: 3, c: 28 },
+    dt: 0.002,
+    init: () => [-10, 0, 37],
+    step: (x, y, z, p, dt) => [
+      x + (p.a * (y - x)) * dt,
+      y + ((p.c - p.a) * x - x * z + p.c * y) * dt,
+      z + (x * y - p.b * z) * dt
+    ],
+    scale: 5,
+    center: [0, 0, 30],
+    color: [1.0, 0.4, 0.5],
+  },
+};
+
+// --- State ---
+let currentAttractor = 'lorenz';
+let points = [];  // [{x,y,z,age}]
+let trail = [];   // current trajectory point
+const MAX_POINTS = 200000;
+const POINTS_PER_FRAME = 200;
+let paused = false;
+
+// Camera
+let rotX = -0.4;
+let rotY = 0.6;
+let zoom = 1.0;
+let dragging = false;
+let dragX, dragY;
+
+function resetAttractor() {
+  const a = ATTRACTORS[currentAttractor];
+  points = [];
+  const init = a.init();
+  trail = [init[0], init[1], init[2]];
+}
+
+function switchAttractor(name) {
+  if (!ATTRACTORS[name]) return;
+  currentAttractor = name;
+  resetAttractor();
+  document.getElementById('attractor-name').textContent = ATTRACTORS[name].name;
+  document.getElementById('attractor-eq').textContent = ATTRACTORS[name].eq;
+
+  // Update hud buttons
+  document.querySelectorAll('#hud button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.name === name);
+  });
+}
+
+// --- Build HUD ---
+const hud = document.getElementById('hud');
+for (const name of Object.keys(ATTRACTORS)) {
+  const btn = document.createElement('button');
+  btn.textContent = ATTRACTORS[name].name;
+  btn.dataset.name = name;
+  btn.addEventListener('click', () => switchAttractor(name));
+  hud.appendChild(btn);
+}
+
+// --- Camera controls ---
+canvas.addEventListener('mousedown', e => {
+  dragging = true;
+  dragX = e.clientX;
+  dragY = e.clientY;
+});
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - dragX;
+  const dy = e.clientY - dragY;
+  rotY += dx * 0.005;
+  rotX += dy * 0.005;
+  rotX = Math.max(-Math.PI/2, Math.min(Math.PI/2, rotX));
+  dragX = e.clientX;
+  dragY = e.clientY;
+});
+canvas.addEventListener('mouseup', () => dragging = false);
+canvas.addEventListener('mouseleave', () => dragging = false);
+canvas.addEventListener('wheel', e => {
+  zoom *= e.deltaY > 0 ? 0.95 : 1.05;
+  zoom = Math.max(0.1, Math.min(10, zoom));
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { paused = !paused; e.preventDefault(); }
+  if (e.code === 'KeyR') resetAttractor();
+});
+
+// --- 3D projection ---
+function project(x, y, z, a) {
+  // Center
+  x -= a.center[0];
+  y -= a.center[1];
+  z -= a.center[2];
+
+  // Scale
+  const s = a.scale * zoom;
+  x *= s;
+  y *= s;
+  z *= s;
+
+  // Rotate Y
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  const x1 = x * cosY - z * sinY;
+  const z1 = x * sinY + z * cosY;
+
+  // Rotate X
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  const y1 = y * cosX - z1 * sinX;
+  const z2 = y * sinX + z1 * cosX;
+
+  // Simple perspective
+  const fov = 600;
+  const perspective = fov / (fov + z2 + 300);
+
+  return {
+    sx: W/2 + x1 * perspective,
+    sy: H/2 + y1 * perspective,
+    depth: z2,
+    perspective
+  };
+}
+
+// --- Main Loop ---
+let frameCount = 0;
+let fpsTime = 0;
+let fps = 0;
+
+function loop(time) {
+  requestAnimationFrame(loop);
+
+  frameCount++;
+  if (time - fpsTime > 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    fpsTime = time;
+  }
+
+  const a = ATTRACTORS[currentAttractor];
+
+  // Integrate
+  if (!paused) {
+    for (let i = 0; i < POINTS_PER_FRAME; i++) {
+      const [nx, ny, nz] = a.step(trail[0], trail[1], trail[2], a.params, a.dt);
+
+      // Check for divergence
+      if (Math.abs(nx) > 1e6 || Math.abs(ny) > 1e6 || Math.abs(nz) > 1e6) {
+        const init = a.init();
+        trail = [init[0], init[1], init[2]];
+        continue;
+      }
+
+      trail = [nx, ny, nz];
+      points.push({ x: nx, y: ny, z: nz, age: 0 });
+    }
+
+    // Cap points
+    if (points.length > MAX_POINTS) {
+      points = points.slice(points.length - MAX_POINTS);
+    }
+
+    // Age all points
+    for (let i = 0; i < points.length; i++) {
+      points[i].age++;
+    }
+  }
+
+  // Draw
+  // Fade background
+  ctx.fillStyle = 'rgba(5, 5, 8, 0.15)';
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw points
+  const len = points.length;
+  const col = a.color;
+
+  for (let i = 0; i < len; i++) {
+    const p = points[i];
+    const proj = project(p.x, p.y, p.z, a);
+
+    if (proj.sx < -50 || proj.sx > W + 50 || proj.sy < -50 || proj.sy > H + 50) continue;
+
+    // Fade based on age and depth
+    const ageFade = Math.min(1, p.age / 50);
+    const depthFade = Math.max(0.1, proj.perspective);
+    const alpha = ageFade * depthFade * 0.35;
+
+    const size = Math.max(0.5, 1.5 * proj.perspective);
+
+    const r = Math.round(col[0] * 255 * depthFade);
+    const g = Math.round(col[1] * 255 * depthFade);
+    const b = Math.round(col[2] * 255 * depthFade);
+
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.fillRect(proj.sx - size/2, proj.sy - size/2, size, size);
+  }
+
+  // Draw recent points brighter (the "head" of the trajectory)
+  const headLen = Math.min(100, len);
+  for (let i = len - headLen; i < len; i++) {
+    const p = points[i];
+    const proj = project(p.x, p.y, p.z, a);
+    const t = (i - (len - headLen)) / headLen;
+    const alpha = t * 0.9;
+    const size = 1 + t * 2;
+
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.beginPath();
+    ctx.arc(proj.sx, proj.sy, size * proj.perspective, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  document.getElementById('point-count').textContent =
+    `${(points.length/1000).toFixed(0)}k points · ${fps} fps`;
+}
+
+// Init
+switchAttractor('lorenz');
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

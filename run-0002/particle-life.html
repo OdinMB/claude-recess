@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Particle Life</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0f;
+    color: #c8c8d0;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    display: flex;
+    height: 100vh;
+  }
+  canvas {
+    flex: 1;
+    display: block;
+  }
+  #panel {
+    width: 280px;
+    background: #12121a;
+    border-left: 1px solid #2a2a3a;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 12px;
+  }
+  h1 {
+    font-size: 16px;
+    color: #e0e0f0;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #2a2a3a;
+    padding-bottom: 8px;
+  }
+  h2 {
+    font-size: 11px;
+    color: #8888aa;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+  button {
+    background: #1e1e2e;
+    color: #c8c8d0;
+    border: 1px solid #3a3a4a;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    transition: background 0.15s;
+  }
+  button:hover { background: #2a2a3e; }
+  button.active { background: #3a2a5e; border-color: #6a5a8a; }
+  .btn-row { display: flex; gap: 6px; }
+  .btn-row button { flex: 1; }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-row label {
+    width: 70px;
+    font-size: 11px;
+    color: #8888aa;
+  }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row .val {
+    width: 36px;
+    text-align: right;
+    font-size: 11px;
+    color: #aaaacc;
+  }
+  #matrix-container {
+    display: grid;
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .matrix-cell {
+    width: 100%;
+    aspect-ratio: 1;
+    border: none;
+    font-size: 9px;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+  }
+  .matrix-cell:hover { transform: scale(1.15); z-index: 1; }
+  .matrix-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+  }
+  #stats {
+    font-size: 10px;
+    color: #666680;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid #2a2a3a;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    background: #1e1e2e;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #6a5a8a;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .preset-name {
+    font-size: 10px;
+    color: #6a8aaa;
+    font-style: italic;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="panel">
+  <h1>Particle Life</h1>
+  <div class="preset-name" id="preset-label">random universe</div>
+
+  <h2>Universe</h2>
+  <div class="btn-row">
+    <button id="btn-randomize">Randomize</button>
+    <button id="btn-symmetry">Symmetric</button>
+  </div>
+  <div class="btn-row">
+    <button id="btn-reset-pos">Scatter</button>
+    <button id="btn-pause">Pause</button>
+  </div>
+
+  <h2>Presets</h2>
+  <div class="btn-row">
+    <button data-preset="snakes">Snakes</button>
+    <button data-preset="cells">Cells</button>
+  </div>
+  <div class="btn-row">
+    <button data-preset="hunt">Hunt</button>
+    <button data-preset="orbits">Orbits</button>
+  </div>
+  <div class="btn-row">
+    <button data-preset="mitosis">Mitosis</button>
+    <button data-preset="ecosystem">Ecosystem</button>
+  </div>
+
+  <h2>Parameters</h2>
+  <div class="slider-row">
+    <label>Particles</label>
+    <input type="range" id="sl-count" min="100" max="5000" step="100" value="1000">
+    <span class="val" id="val-count">1000</span>
+  </div>
+  <div class="slider-row">
+    <label>Friction</label>
+    <input type="range" id="sl-friction" min="0" max="100" step="1" value="50">
+    <span class="val" id="val-friction">0.50</span>
+  </div>
+  <div class="slider-row">
+    <label>Range</label>
+    <input type="range" id="sl-range" min="20" max="200" step="5" value="80">
+    <span class="val" id="val-range">80</span>
+  </div>
+  <div class="slider-row">
+    <label>Force</label>
+    <input type="range" id="sl-force" min="1" max="20" step="1" value="5">
+    <span class="val" id="val-force">5</span>
+  </div>
+  <div class="slider-row">
+    <label>Types</label>
+    <input type="range" id="sl-types" min="2" max="8" step="1" value="5">
+    <span class="val" id="val-types">5</span>
+  </div>
+
+  <h2>Interaction Matrix</h2>
+  <div>Click cells to flip attraction ↔ repulsion</div>
+  <div id="matrix-container"></div>
+
+  <div id="stats"></div>
+</div>
+
+<script>
+// --- Constants & State ---
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const COLORS = [
+  '#ff4466', '#44aaff', '#44ff88', '#ffaa22',
+  '#cc66ff', '#ffff44', '#ff66aa', '#66ffff'
+];
+
+let numTypes = 5;
+let numParticles = 1000;
+let friction = 0.5;
+let interactionRange = 80;
+let forceFactor = 5;
+let paused = false;
+let matrix = [];  // numTypes x numTypes attraction values [-1, 1]
+let particles = [];
+let W, H;
+
+// --- Resize ---
+function resize() {
+  const panel = document.getElementById('panel');
+  W = window.innerWidth - panel.offsetWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// --- Matrix ---
+function randomMatrix(symmetric = false) {
+  matrix = [];
+  for (let i = 0; i < numTypes; i++) {
+    matrix[i] = [];
+    for (let j = 0; j < numTypes; j++) {
+      if (symmetric && j < i) {
+        matrix[i][j] = matrix[j][i];
+      } else {
+        matrix[i][j] = Math.random() * 2 - 1;
+      }
+    }
+  }
+  renderMatrix();
+}
+
+function renderMatrix() {
+  const container = document.getElementById('matrix-container');
+  const cols = numTypes + 1;
+  container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  container.innerHTML = '';
+
+  // top-left empty
+  const empty = document.createElement('div');
+  container.appendChild(empty);
+
+  // column headers
+  for (let j = 0; j < numTypes; j++) {
+    const hdr = document.createElement('div');
+    hdr.className = 'matrix-header';
+    hdr.style.color = COLORS[j];
+    hdr.textContent = '●';
+    container.appendChild(hdr);
+  }
+
+  // rows
+  for (let i = 0; i < numTypes; i++) {
+    // row header
+    const rhdr = document.createElement('div');
+    rhdr.className = 'matrix-header';
+    rhdr.style.color = COLORS[i];
+    rhdr.textContent = '●';
+    container.appendChild(rhdr);
+
+    for (let j = 0; j < numTypes; j++) {
+      const cell = document.createElement('div');
+      cell.className = 'matrix-cell';
+      updateCellStyle(cell, matrix[i][j]);
+      cell.addEventListener('click', () => {
+        matrix[i][j] = -matrix[i][j];
+        updateCellStyle(cell, matrix[i][j]);
+        document.getElementById('preset-label').textContent = 'custom';
+      });
+      container.appendChild(cell);
+    }
+  }
+}
+
+function updateCellStyle(cell, val) {
+  const absVal = Math.abs(val);
+  if (val > 0) {
+    const g = Math.round(100 + 155 * absVal);
+    cell.style.background = `rgba(40, ${g}, 80, ${0.3 + 0.7 * absVal})`;
+    cell.textContent = '+' + val.toFixed(1);
+    cell.style.color = `rgba(100, 255, 150, ${0.5 + 0.5 * absVal})`;
+  } else {
+    const r = Math.round(100 + 155 * absVal);
+    cell.style.background = `rgba(${r}, 40, 60, ${0.3 + 0.7 * absVal})`;
+    cell.textContent = val.toFixed(1);
+    cell.style.color = `rgba(255, 100, 120, ${0.5 + 0.5 * absVal})`;
+  }
+}
+
+// --- Particles ---
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < numParticles; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: 0,
+      vy: 0,
+      type: Math.floor(Math.random() * numTypes)
+    });
+  }
+}
+
+// --- Spatial Hash Grid ---
+let grid = {};
+let cellSize = 80;
+
+function gridKey(cx, cy) {
+  return cx + ',' + cy;
+}
+
+function buildGrid() {
+  grid = {};
+  cellSize = Math.max(interactionRange, 20);
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    const cx = Math.floor(p.x / cellSize);
+    const cy = Math.floor(p.y / cellSize);
+    const key = gridKey(cx, cy);
+    if (!grid[key]) grid[key] = [];
+    grid[key].push(i);
+  }
+}
+
+function getNeighborIndices(px, py) {
+  const cx = Math.floor(px / cellSize);
+  const cy = Math.floor(py / cellSize);
+  const result = [];
+  const gridW = Math.ceil(W / cellSize);
+  const gridH = Math.ceil(H / cellSize);
+
+  for (let dx = -1; dx <= 1; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      let nx = cx + dx;
+      let ny = cy + dy;
+      // wrap grid coordinates
+      if (nx < 0) nx += gridW;
+      if (nx >= gridW) nx -= gridW;
+      if (ny < 0) ny += gridH;
+      if (ny >= gridH) ny -= gridH;
+      const key = gridKey(nx, ny);
+      if (grid[key]) {
+        const arr = grid[key];
+        for (let k = 0; k < arr.length; k++) {
+          result.push(arr[k]);
+        }
+      }
+    }
+  }
+  return result;
+}
+
+// --- Physics ---
+function step(dt) {
+  buildGrid();
+
+  const rSq = interactionRange * interactionRange;
+  const halfR = interactionRange * 0.4;
+  const halfW = W / 2;
+  const halfH = H / 2;
+
+  for (let i = 0; i < particles.length; i++) {
+    const a = particles[i];
+    let fx = 0, fy = 0;
+    const neighbors = getNeighborIndices(a.x, a.y);
+
+    for (let ni = 0; ni < neighbors.length; ni++) {
+      const j = neighbors[ni];
+      if (i === j) continue;
+      const b = particles[j];
+
+      let dx = b.x - a.x;
+      let dy = b.y - a.y;
+
+      // wrap around
+      if (dx > halfW) dx -= W;
+      if (dx < -halfW) dx += W;
+      if (dy > halfH) dy -= H;
+      if (dy < -halfH) dy += H;
+
+      const dSq = dx * dx + dy * dy;
+      if (dSq > rSq || dSq < 1) continue;
+
+      const d = Math.sqrt(dSq);
+
+      let force;
+      if (d < halfR) {
+        force = (d / halfR - 1);
+      } else {
+        const attraction = matrix[a.type][b.type];
+        const mid = (halfR + interactionRange) / 2;
+        const t = 1 - Math.abs(d - mid) / (interactionRange - halfR) * 2;
+        force = attraction * Math.max(0, t);
+      }
+
+      fx += (dx / d) * force;
+      fy += (dy / d) * force;
+    }
+
+    const f = forceFactor * 0.5;
+    a.vx += fx * f * dt;
+    a.vy += fy * f * dt;
+  }
+
+  // update positions
+  const frict = Math.pow(1 - friction, dt);
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    p.vx *= frict;
+    p.vy *= frict;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+
+    // wrap
+    if (p.x < 0) p.x += W;
+    if (p.x > W) p.x -= W;
+    if (p.y < 0) p.y += H;
+    if (p.y > H) p.y -= H;
+  }
+}
+
+// --- Rendering ---
+function draw() {
+  ctx.fillStyle = 'rgba(10, 10, 15, 0.25)';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+    const brightness = Math.min(1, 0.4 + speed * 0.15);
+    const size = 1.5 + speed * 0.1;
+
+    ctx.globalAlpha = brightness;
+    ctx.fillStyle = COLORS[p.type];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// --- Main Loop ---
+let lastTime = 0;
+let frameCount = 0;
+let fpsTime = 0;
+let fps = 0;
+
+function loop(time) {
+  requestAnimationFrame(loop);
+
+  const dt = Math.min((time - lastTime) / 16.67, 2);  // normalize to ~60fps
+  lastTime = time;
+
+  frameCount++;
+  if (time - fpsTime > 1000) {
+    fps = frameCount;
+    frameCount = 0;
+    fpsTime = time;
+    document.getElementById('stats').textContent =
+      `${fps} fps · ${particles.length} particles · ${numTypes} types`;
+  }
+
+  if (!paused) {
+    step(dt);
+  }
+  draw();
+}
+
+// --- Presets ---
+const PRESETS = {
+  snakes: {
+    types: 6, friction: 35, range: 60, force: 8,
+    matrix: [
+      [ 0.1, 0.9,-0.5,-0.5, 0.0, 0.0],
+      [ 0.0, 0.1, 0.9,-0.5,-0.5, 0.0],
+      [ 0.0, 0.0, 0.1, 0.9,-0.5,-0.5],
+      [-0.5, 0.0, 0.0, 0.1, 0.9,-0.5],
+      [-0.5,-0.5, 0.0, 0.0, 0.1, 0.9],
+      [ 0.9,-0.5,-0.5, 0.0, 0.0, 0.1],
+    ]
+  },
+  cells: {
+    types: 4, friction: 60, range: 100, force: 4,
+    matrix: [
+      [ 0.8, 0.3,-0.2,-0.6],
+      [ 0.3, 0.8,-0.6,-0.2],
+      [-0.2,-0.6, 0.8, 0.3],
+      [-0.6,-0.2, 0.3, 0.8],
+    ]
+  },
+  hunt: {
+    types: 4, friction: 40, range: 90, force: 7,
+    matrix: [
+      [ 0.1, 0.8,-0.8, 0.0],
+      [ 0.0, 0.1, 0.8,-0.8],
+      [-0.8, 0.0, 0.1, 0.8],
+      [ 0.8,-0.8, 0.0, 0.1],
+    ]
+  },
+  orbits: {
+    types: 3, friction: 20, range: 120, force: 3,
+    matrix: [
+      [ 0.0, 0.6,-0.6],
+      [-0.6, 0.0, 0.6],
+      [ 0.6,-0.6, 0.0],
+    ]
+  },
+  mitosis: {
+    types: 2, friction: 55, range: 90, force: 6,
+    matrix: [
+      [ 0.9,-0.4],
+      [-0.4, 0.9],
+    ]
+  },
+  ecosystem: {
+    types: 5, friction: 45, range: 95, force: 6,
+    matrix: [
+      [ 0.3, 0.7,-0.3,-0.7, 0.0],
+      [-0.3, 0.2, 0.6,-0.2,-0.5],
+      [ 0.0,-0.4, 0.4, 0.8,-0.3],
+      [ 0.5, 0.0,-0.5, 0.1, 0.6],
+      [-0.6, 0.3, 0.0,-0.4, 0.3],
+    ]
+  }
+};
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+
+  numTypes = p.types;
+  friction = p.friction / 100;
+  interactionRange = p.range;
+  forceFactor = p.force;
+  matrix = p.matrix.map(r => [...r]);
+
+  // Update sliders
+  document.getElementById('sl-types').value = numTypes;
+  document.getElementById('val-types').textContent = numTypes;
+  document.getElementById('sl-friction').value = p.friction;
+  document.getElementById('val-friction').textContent = friction.toFixed(2);
+  document.getElementById('sl-range').value = p.range;
+  document.getElementById('val-range').textContent = p.range;
+  document.getElementById('sl-force').value = p.force;
+  document.getElementById('val-force').textContent = p.force;
+
+  renderMatrix();
+  initParticles();
+  document.getElementById('preset-label').textContent = name;
+}
+
+// --- UI Wiring ---
+document.getElementById('btn-randomize').addEventListener('click', () => {
+  randomMatrix(false);
+  initParticles();
+  document.getElementById('preset-label').textContent = 'random universe';
+});
+
+document.getElementById('btn-symmetry').addEventListener('click', () => {
+  randomMatrix(true);
+  initParticles();
+  document.getElementById('preset-label').textContent = 'symmetric universe';
+});
+
+document.getElementById('btn-reset-pos').addEventListener('click', () => {
+  initParticles();
+});
+
+document.getElementById('btn-pause').addEventListener('click', function() {
+  paused = !paused;
+  this.textContent = paused ? 'Resume' : 'Pause';
+  this.classList.toggle('active', paused);
+});
+
+// Preset buttons
+document.querySelectorAll('[data-preset]').forEach(btn => {
+  btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+});
+
+// Sliders
+function wireSlider(id, valId, setter, formatter) {
+  const sl = document.getElementById(id);
+  const val = document.getElementById(valId);
+  sl.addEventListener('input', () => {
+    const v = Number(sl.value);
+    setter(v);
+    val.textContent = formatter ? formatter(v) : v;
+    document.getElementById('preset-label').textContent = 'custom';
+  });
+}
+
+wireSlider('sl-count', 'val-count', v => {
+  numParticles = v;
+  initParticles();
+});
+wireSlider('sl-friction', 'val-friction', v => { friction = v / 100; }, v => (v / 100).toFixed(2));
+wireSlider('sl-range', 'val-range', v => { interactionRange = v; });
+wireSlider('sl-force', 'val-force', v => { forceFactor = v; });
+wireSlider('sl-types', 'val-types', v => {
+  numTypes = v;
+  randomMatrix(false);
+  initParticles();
+});
+
+// --- Init ---
+randomMatrix(false);
+initParticles();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

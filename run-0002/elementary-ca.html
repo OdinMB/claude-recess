@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Elementary Cellular Automata</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #08080d;
+    color: #c8c8d0;
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    display: flex;
+    height: 100vh;
+  }
+  canvas {
+    flex: 1;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+  #panel {
+    width: 260px;
+    background: #12121a;
+    border-left: 1px solid #2a2a3a;
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 12px;
+  }
+  h1 { font-size: 15px; color: #e0e0f0; letter-spacing: 2px; text-transform: uppercase; border-bottom: 1px solid #2a2a3a; padding-bottom: 8px; }
+  h2 { font-size: 11px; color: #8888aa; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+  p.desc { font-size: 10px; color: #666680; line-height: 1.5; }
+  button {
+    background: #1e1e2e; color: #c8c8d0; border: 1px solid #3a3a4a;
+    padding: 7px 10px; cursor: pointer; font-family: inherit; font-size: 11px;
+    transition: background 0.15s;
+  }
+  button:hover { background: #2a2a3e; }
+  button.active { background: #3a2a5e; border-color: #6a5a8a; }
+  .btn-row { display: flex; gap: 5px; }
+  .btn-row button { flex: 1; }
+  .slider-row { display: flex; align-items: center; gap: 6px; }
+  .slider-row label { width: 50px; font-size: 11px; color: #8888aa; }
+  .slider-row input[type=range] { flex: 1; }
+  .slider-row .val { width: 40px; text-align: right; font-size: 11px; color: #aaaacc; }
+  input[type=range] {
+    -webkit-appearance: none; background: #1e1e2e; height: 4px; border-radius: 2px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 12px; height: 12px; background: #6a5a8a; border-radius: 50%; cursor: pointer;
+  }
+  #stats { font-size: 10px; color: #666680; margin-top: auto; padding-top: 8px; border-top: 1px solid #2a2a3a; }
+  #rule-num {
+    font-size: 28px;
+    color: #8899bb;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  #rule-num span { font-size: 12px; color: #555; }
+  .rule-table {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 2px;
+    margin-top: 4px;
+  }
+  .rule-entry {
+    text-align: center;
+    cursor: pointer;
+    padding: 2px;
+    transition: background 0.15s;
+  }
+  .rule-entry:hover { background: #1e1e2e; }
+  .rule-pattern {
+    display: flex;
+    justify-content: center;
+    gap: 1px;
+    margin-bottom: 2px;
+  }
+  .rule-pattern .cell {
+    width: 8px;
+    height: 8px;
+  }
+  .rule-result {
+    width: 8px;
+    height: 8px;
+    margin: 0 auto;
+  }
+  .cell-on { background: #aabbdd; }
+  .cell-off { background: #1a1a24; }
+  .arrow { font-size: 8px; color: #444; text-align: center; }
+  .preset-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+  .preset-grid button { font-size: 10px; padding: 6px 2px; }
+  select {
+    background: #1a1a28; color: #ccc; border: 1px solid #3a3a4a;
+    padding: 6px 8px; font-family: inherit; font-size: 11px; width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="panel">
+  <h1>Elementary CA</h1>
+  <p class="desc">256 possible rules for 1D binary cellular automata. Each rule maps a 3-cell neighborhood to the next cell state. Scroll through rules, or click the lookup table to flip individual outputs.</p>
+
+  <div id="rule-num"><span>Rule</span> 30</div>
+
+  <div class="slider-row">
+    <label>Rule #</label>
+    <input type="range" id="sl-rule" min="0" max="255" step="1" value="30">
+    <span class="val" id="val-rule">30</span>
+  </div>
+
+  <h2>Lookup Table</h2>
+  <div class="rule-table" id="rule-table"></div>
+
+  <h2>Notable Rules</h2>
+  <div class="preset-grid" id="presets"></div>
+
+  <h2>Initial Condition</h2>
+  <select id="init-select">
+    <option value="single">Single cell</option>
+    <option value="random">Random</option>
+    <option value="random-sparse">Random sparse</option>
+  </select>
+
+  <h2>Display</h2>
+  <div class="slider-row">
+    <label>Zoom</label>
+    <input type="range" id="sl-zoom" min="1" max="6" step="1" value="1">
+    <span class="val" id="val-zoom">1</span>
+  </div>
+  <div class="btn-row">
+    <button id="btn-regen">Regenerate</button>
+  </div>
+
+  <div id="stats"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, cellW, cellH;
+let ruleNum = 30;
+let ruleBits = new Uint8Array(8);
+let zoomLevel = 1;
+let initMode = 'single';
+
+function resize() {
+  const panel = document.getElementById('panel');
+  W = window.innerWidth - panel.offsetWidth;
+  H = window.innerHeight;
+  canvas.width = W;
+  canvas.height = H;
+}
+window.addEventListener('resize', () => { resize(); generate(); });
+resize();
+
+// --- Rule encoding ---
+function setRuleNum(n) {
+  ruleNum = n & 0xFF;
+  for (let i = 0; i < 8; i++) {
+    ruleBits[i] = (ruleNum >> i) & 1;
+  }
+  document.getElementById('rule-num').innerHTML = `<span>Rule</span> ${ruleNum}`;
+  document.getElementById('sl-rule').value = ruleNum;
+  document.getElementById('val-rule').textContent = ruleNum;
+  renderRuleTable();
+}
+
+function renderRuleTable() {
+  const container = document.getElementById('rule-table');
+  container.innerHTML = '';
+
+  // Display patterns from 111 (7) down to 000 (0) — standard Wolfram order
+  for (let i = 7; i >= 0; i--) {
+    const entry = document.createElement('div');
+    entry.className = 'rule-entry';
+
+    // Pattern
+    const pattern = document.createElement('div');
+    pattern.className = 'rule-pattern';
+    for (let b = 2; b >= 0; b--) {
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + ((i >> b) & 1 ? 'cell-on' : 'cell-off');
+      pattern.appendChild(cell);
+    }
+    entry.appendChild(pattern);
+
+    // Arrow
+    const arrow = document.createElement('div');
+    arrow.className = 'arrow';
+    arrow.textContent = '\u2193';
+    entry.appendChild(arrow);
+
+    // Result
+    const result = document.createElement('div');
+    result.className = 'rule-result ' + (ruleBits[i] ? 'cell-on' : 'cell-off');
+    entry.appendChild(result);
+
+    // Click to toggle
+    entry.addEventListener('click', () => {
+      ruleBits[i] ^= 1;
+      ruleNum = 0;
+      for (let j = 0; j < 8; j++) ruleNum |= ruleBits[j] << j;
+      setRuleNum(ruleNum);
+      generate();
+    });
+
+    container.appendChild(entry);
+  }
+}
+
+// --- Notable rules ---
+const NOTABLE = [
+  { n: 30, name: 'Rule 30', desc: 'Chaos' },
+  { n: 90, name: 'Rule 90', desc: 'Sierpinski' },
+  { n: 110, name: 'Rule 110', desc: 'Turing-complete' },
+  { n: 184, name: 'Rule 184', desc: 'Traffic' },
+  { n: 150, name: 'Rule 150', desc: 'Fractal' },
+  { n: 60, name: 'Rule 60', desc: 'XOR' },
+  { n: 105, name: 'Rule 105', desc: 'XNOR' },
+  { n: 54, name: 'Rule 54', desc: 'Complex' },
+  { n: 73, name: 'Rule 73', desc: 'Asymmetric' },
+  { n: 22, name: 'Rule 22', desc: 'Triangles' },
+  { n: 126, name: 'Rule 126', desc: 'Dense' },
+  { n: 45, name: 'Rule 45', desc: 'Mixed' },
+];
+
+const presetGrid = document.getElementById('presets');
+for (const p of NOTABLE) {
+  const btn = document.createElement('button');
+  btn.textContent = p.n;
+  btn.title = `${p.name}: ${p.desc}`;
+  btn.addEventListener('click', () => { setRuleNum(p.n); generate(); });
+  presetGrid.appendChild(btn);
+}
+
+// --- Generation ---
+function generate() {
+  const cellSize = zoomLevel;
+  cellW = Math.floor(W / cellSize);
+  cellH = Math.floor(H / cellSize);
+
+  // Create initial row
+  let row = new Uint8Array(cellW);
+  if (initMode === 'single') {
+    row[Math.floor(cellW / 2)] = 1;
+  } else if (initMode === 'random') {
+    for (let i = 0; i < cellW; i++) row[i] = Math.random() > 0.5 ? 1 : 0;
+  } else {
+    for (let i = 0; i < cellW; i++) row[i] = Math.random() > 0.85 ? 1 : 0;
+  }
+
+  // Create image
+  const imgData = ctx.createImageData(W, H);
+  const px = imgData.data;
+
+  // Fill with background
+  for (let i = 0; i < px.length; i += 4) {
+    px[i] = 8; px[i+1] = 8; px[i+2] = 13; px[i+3] = 255;
+  }
+
+  // Generate rows
+  for (let y = 0; y < cellH; y++) {
+    // Draw this row
+    for (let x = 0; x < cellW; x++) {
+      if (row[x]) {
+        // Fill cellSize x cellSize block
+        for (let dy = 0; dy < cellSize; dy++) {
+          for (let dx = 0; dx < cellSize; dx++) {
+            const px_x = x * cellSize + dx;
+            const px_y = y * cellSize + dy;
+            if (px_x >= W || px_y >= H) continue;
+            const idx = (px_y * W + px_x) * 4;
+
+            // Subtle color based on position
+            const t = y / cellH;
+            px[idx]   = Math.round(140 + 80 * t);   // R
+            px[idx+1] = Math.round(160 + 60 * (1-t)); // G
+            px[idx+2] = Math.round(200 - 20 * t);   // B
+          }
+        }
+      }
+    }
+
+    // Compute next row
+    const next = new Uint8Array(cellW);
+    for (let x = 0; x < cellW; x++) {
+      const l = row[(x - 1 + cellW) % cellW];
+      const c = row[x];
+      const r = row[(x + 1) % cellW];
+      const pattern = (l << 2) | (c << 1) | r;
+      next[x] = ruleBits[pattern];
+    }
+    row = next;
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  document.getElementById('stats').textContent =
+    `Rule ${ruleNum} · ${cellW}x${cellH} cells · ${initMode}`;
+}
+
+// --- UI ---
+document.getElementById('sl-rule').addEventListener('input', function() {
+  setRuleNum(Number(this.value));
+  generate();
+});
+
+document.getElementById('sl-zoom').addEventListener('input', function() {
+  zoomLevel = Number(this.value);
+  document.getElementById('val-zoom').textContent = zoomLevel;
+  generate();
+});
+
+document.getElementById('init-select').addEventListener('change', function() {
+  initMode = this.value;
+  generate();
+});
+
+document.getElementById('btn-regen').addEventListener('click', generate);
+
+// Keyboard: left/right arrows to browse rules
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowRight') {
+    setRuleNum((ruleNum + 1) % 256);
+    generate();
+    e.preventDefault();
+  }
+  if (e.key === 'ArrowLeft') {
+    setRuleNum((ruleNum + 255) % 256);
+    generate();
+    e.preventDefault();
+  }
+});
+
+// --- Init ---
+setRuleNum(30);
+generate();
+</script>
+</body>
+</html>
