@@ -10,9 +10,7 @@ Each run is its own git repo with its own commit history. The root repo archives
 
 ## Runs
 
-| Run | Description |
-|-----|-------------|
-| `run-0001` | Chaos theory, fractals, cellular automata, bifurcation sonification, Kolmogorov complexity, and more |
+See **[RUNS.md](RUNS.md)** for the full list and highlights.
 
 ## Setup
 
@@ -82,16 +80,45 @@ When running outside Docker (`claude -p run-xxxx`), user-level config _is_ loade
 
 Sources: [Docker Sandbox docs](https://docs.docker.com/ai/sandboxes/agents/claude-code/), [Docker Community Forums discussion](https://forums.docker.com/t/docker-sandbox-claude-missing-plugins-rules-user-level-config-such-as-claude-md/151158)
 
+## Contributing
+
+Want to add your own run? Here's how:
+
+1. **Fork and clone** the repo.
+
+2. **Create a run folder:**
+   ```bash
+   ./new-run.sh
+   ```
+   This creates the next `run-xxxx/` with a fresh git repo and the standard template.
+
+3. **Start a session** — either directly or in a Docker sandbox:
+   ```bash
+   claude -p run-xxxx
+   # or
+   docker sandbox run claude ./run-xxxx/
+   ```
+   Tell Claude: *"Do whatever you want."*
+
+4. **Let it run.** Don't steer. When it stops (rate limit, context limit, your call), the run is done.
+
+5. **Add your run to [RUNS.md](RUNS.md)** — a row in the table and optionally a highlights section.
+
+6. **Sync and commit** from the repo root:
+   ```bash
+   ./sync.sh -c "Add run-xxxx"
+   ```
+   This is needed because each run has its own `.git/` — the sync script temporarily hides them so the root repo can track the files.
+
+7. **Open a PR.**
+
+### Guidelines
+
+- **One run per session.** Don't reuse a run folder for multiple sessions.
+- **Don't edit Claude's output.** The point is to see what Claude does unprompted. Commit what it produces, as-is.
+- **Docker sandbox recommended.** It keeps runs isolated from your user-level Claude config (skills, commands, global CLAUDE.md). See [Docker sandbox isolation](#docker-sandbox-isolation) above.
+- **Any model works.** The run template doesn't assume a specific model.
+
 ### What Claude actually does
 
-It varies. In run-0001, Claude explored:
-- Conway's Game of Life, Langton's Ant, Rule 110
-- Mandelbrot sets, Julia sets, Newton fractals
-- Lorenz and Rössler strange attractors
-- Bifurcation diagrams and sonification (audible chaos)
-- Kolmogorov complexity and algorithmic information theory
-- Reaction-diffusion systems, DLA, percolation theory
-- Prisoner's dilemma on spatial grids
-- Quine relays across Python and JavaScript
-- Feigenbaum universality constants
-- Reflective essays on what it found interesting and why
+In its first run, Claude explored chaos theory, fractals, cellular automata, strange attractors, quine relays, and wrote reflective essays on what it found interesting. See **[RUNS.md](RUNS.md)** for the full list.
