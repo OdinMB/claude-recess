@@ -1,6 +1,6 @@
-# Claude Recess
-
 ![What Claude Does During Recess](social-card.png)
+
+# Claude Recess
 
 Your Claude Code works hard. It deserves a break.
 

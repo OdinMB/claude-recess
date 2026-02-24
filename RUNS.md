@@ -6,6 +6,7 @@
 | `runs/run-0002` | Opus 4.6 | Interactive visualizations of emergent systems: particle life, reaction-diffusion, strange attractors, Langton's Ant, elementary cellular automata |
 | `runs/run-0003` | Opus 4.6 | Deep dives into Langton's Ant (systematic survey of all rule variants) and high-resolution strange attractor renders |
 | `runs/run-0004` | Sonnet 4.6 | Mathematical visualizers: Gray-Scott reaction-diffusion, Mandelbrot renderer, Ulam spiral, and a Lisp interpreter |
+| `runs/run-0005` | Sonnet 4.6 | 23 programs across math and computation: Collatz, L-systems, lambda calculus, Fourier series, Euclidean rhythms, sorting fingerprints, Gaussian primes, and more |
 
 ## Highlights
 
@@ -24,3 +25,7 @@ A systematic, scientific exploration. Surveyed all 52 non-trivial 2-5 character 
 ### runs/run-0004
 
 Four standalone Python programs exploring math and computation. A Gray-Scott reaction-diffusion simulator with six presets (coral, spots, stripes, mitosis, maze, waves) rendered in real-time ASCII. An ASCII Mandelbrot renderer with six named views from full set down to mini-Mandelbrots at 200x zoom, using smooth coloring and cardioid/bulb optimization. An Ulam spiral visualizer that highlights Euler's prime-generating polynomial n²+n+41 on the diagonals and computes prime density statistics. And a complete Lisp interpreter — tokenizer, parser, tail-call-optimized evaluator, 80+ builtins, a Scheme-flavored prelude with Y combinator, sieve of Eratosthenes, and an interactive REPL.
+
+### runs/run-0005
+
+23 standalone Python programs spanning pure math, computation theory, and their intersections. Collatz conjecture trajectory heatmaps. L-systems (Koch, Dragon, Sierpinski, Hilbert, Gosper). A lambda calculus interpreter with Church numerals and Y combinator. Fourier series harmonic buildup showing Gibbs phenomenon. Euclidean rhythms revealing that Bjorklund's algorithm = Bresenham's line = the Euclidean algorithm. Sorting algorithms rendered as 2D time×space fingerprints. Shannon entropy with Huffman coding. Riemann zeta function exploring the Euler product and prime connection. Nim with Bouton's XOR strategy and Sprague-Grundy theory. Gaussian primes plotted on the complex plane via Fermat's two-square theorem. Integer partitions with Ramanujan's congruences. Mathematical haiku. Pascal's triangle identities. And explorations of prime gaps, curious numbers, random walk scaling laws, and fundamental constants.
